@@ -3386,6 +3386,7 @@ async function buildRoutedRequest({ request, payload, route, agedInput }) {
   const chatCompletionsProvider = provider?.protocol !== "openai-responses";
   const deepSeekResponses = usesDeepSeekResponses(route);
   const consoleGoResponsesCompatibility = needsConsoleGoResponsesToolCompatibility(route);
+  const localResponsesCompatibility = provider?.id === "local";
   // Restore declarations only where the existing adapter flattens tools again.
   // Native Responses routes retain the client's original declaration shape and
   // restore only their response lookup below.
@@ -3550,7 +3551,13 @@ async function buildRoutedRequest({ request, payload, route, agedInput }) {
     Array.isArray(tools) && tools.some(
       (tool) => tool?.type === "custom" && tool.name === "apply_patch",
     );
-  if (needsStrictOpenCodeToolCompatibility(route) || deepSeekResponses || structuredPatch || patchHook) {
+  if (
+    needsStrictOpenCodeToolCompatibility(route) ||
+    deepSeekResponses ||
+    localResponsesCompatibility ||
+    structuredPatch ||
+    patchHook
+  ) {
     const customTools = bridgeCustomTools(
       tools,
       routedInput,

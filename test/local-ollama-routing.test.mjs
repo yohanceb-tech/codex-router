@@ -39,7 +39,7 @@ function localFixture() {
           contextWindow: 32768,
           autoCompact: 28000,
           inputModalities: ["text"],
-          supportsApplyPatchTool: false,
+          supportsApplyPatchTool: true,
           multiAgentVersion: "v1",
           compHash: "local-qwen3-8-27b-mlx-user-v1",
         },
@@ -255,6 +255,41 @@ test("the router sends local turns directly to Ollama's native Responses endpoin
     assert.equal(requests.length, 2);
     assert.equal(requests[1].model, "gpt-oss:20b");
     assert.deepEqual(requests[1].reasoning, { effort: "high" });
+
+    const patchResponse = await fetch(`${callerBaseUrl(routerPort, CALLER_KEY)}/responses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: THINKING_SLUG,
+        input: "fix it",
+        tools: [{
+          type: "custom",
+          name: "apply_patch",
+          description: "Apply a patch.",
+          format: { type: "text", syntax: "lark", definition: "start: /.+/s" },
+        }],
+      }),
+    });
+    assert.equal(patchResponse.status, 200, router.testErrors());
+    assert.equal(requests.length, 3);
+    assert.deepEqual(requests[2].tools[0], {
+      type: "function",
+      name: "apply_patch",
+      description:
+        "Apply a patch.\n\nThe `input` string is freeform text, not JSON, and must parse " +
+        "against this lark grammar:\n\nstart: /.+/s",
+      parameters: {
+        type: "object",
+        properties: {
+          input: {
+            type: "string",
+            description: "The complete raw freeform input for this tool, preserved verbatim.",
+          },
+        },
+        required: ["input"],
+        additionalProperties: false,
+      },
+    });
   } finally {
     await stop(router, gateway.server);
     rmSync(fixture.directory, { recursive: true, force: true });

@@ -110,6 +110,23 @@ const LOCAL_MODEL_PRIORITY = 900;
 // Ollama's own OLLAMA_CONTEXT_LENGTH.
 const LOCAL_CONTEXT_WINDOW = 32768;
 const LOCAL_AUTO_COMPACT = 28000;
+const LARGE_LOCAL_CONTEXT_WINDOW = 131072;
+const LARGE_LOCAL_AUTO_COMPACT = 114688;
+
+function localContextLimits(tag, capacity) {
+  const memoryBytes = Number(capacity?.totalMemoryBytes);
+  const hasLargeMemory = Number.isFinite(memoryBytes) && memoryBytes >= 48 * 1024 ** 3;
+  if (hasLargeMemory && String(tag).startsWith("gpt-oss:")) {
+    return {
+      contextWindow: LARGE_LOCAL_CONTEXT_WINDOW,
+      autoCompact: LARGE_LOCAL_AUTO_COMPACT,
+    };
+  }
+  return {
+    contextWindow: LOCAL_CONTEXT_WINDOW,
+    autoCompact: LOCAL_AUTO_COMPACT,
+  };
+}
 
 // Checking a model publishes it: it joins the user-model overlay, which the
 // registry, gateway config, and Codex catalog already consume, so a local
@@ -158,6 +175,7 @@ export function syncLocalProviderSelection(shouldEnable) {
 export function syncLocalUserModels({
   enabled = readLocalModelSelection().enabled,
   capabilitiesFor = (tag) => localModelCapabilities(tag),
+  capacity = detectMachine(),
 } = {}) {
   const others = readUserModels().filter((model) => model.provider !== LOCAL_PROVIDER_ID);
   // Codex drives every turn through tool calls. A model without them is not a
@@ -167,6 +185,7 @@ export function syncLocalUserModels({
   const publishable = enabled.filter((tag) => capabilitiesFor(tag).includes("tools"));
   const entries = publishable.map((tag, index) => {
     const capabilities = capabilitiesFor(tag);
+    const contextLimits = localContextLimits(tag, capacity);
     let displayName;
     try {
       displayName = localModelDisplayName(tag);
@@ -183,8 +202,7 @@ export function syncLocalUserModels({
           // model genuinely has it -- the same standard the checked-in
           // registry is held to.
           inputModalities: capabilities.includes("vision") ? ["text", "image"] : ["text"],
-          contextWindow: LOCAL_CONTEXT_WINDOW,
-          autoCompact: LOCAL_AUTO_COMPACT,
+          ...contextLimits,
           supportsReasoningSummaries: capabilities.includes("thinking"),
           description: `${displayName} running locally through Ollama on this machine.`,
         },
@@ -201,7 +219,7 @@ export function syncLocalUserModels({
       // out keeps every tool a plain function, which Ollama does support.
       // Observed without this: llama3.2:3b inventing a `create_goal` call and
       // emitting it as prose.
-      supportsApplyPatchTool: false,
+      supportsApplyPatchTool: String(tag).startsWith("gpt-oss:"),
       // Models proven to lose lower-priority AGENTS.md memory in long Codex
       // prompts get a durable identity/context guard in their system template.
       ...(String(tag).startsWith("qwen3-coder-next:")

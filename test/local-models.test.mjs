@@ -180,8 +180,31 @@ test("proven local memory overlays are assigned by model family", async () => {
   assert.equal(byId["qwen3-coder-next:q4_K_M"].instructionOverlay, "durable-local-memory");
   assert.equal(byId["gpt-oss:20b"].instructionOverlay, "durable-local-memory-gpt-oss");
   assert.equal(byId["gpt-oss:20b"].supportsReasoningSummaries, true);
+  assert.equal(byId["gpt-oss:20b"].supportsApplyPatchTool, true);
   assert.equal(byId["qwen3-coder-next:q4_K_M"].supportsReasoningSummaries, false);
+  assert.equal(byId["qwen3-coder-next:q4_K_M"].supportsApplyPatchTool, false);
   assert.equal(byId["devstral:latest"].instructionOverlay, undefined);
+});
+
+test("GPT-OSS uses its large context only on a high-memory machine", async () => {
+  const { syncLocalUserModels } = await import("../src/local-models.mjs");
+  const common = {
+    enabled: ["gpt-oss:20b"],
+    capabilitiesFor: () => ["completion", "tools", "thinking"],
+  };
+  const large = syncLocalUserModels({
+    ...common,
+    capacity: { totalMemoryBytes: 64 * 1024 ** 3 },
+  })[0];
+  assert.equal(large.contextWindow, 131072);
+  assert.equal(large.autoCompact, 114688);
+
+  const small = syncLocalUserModels({
+    ...common,
+    capacity: { totalMemoryBytes: 32 * 1024 ** 3 },
+  })[0];
+  assert.equal(small.contextWindow, 32768);
+  assert.equal(small.autoCompact, 28000);
 });
 
 test("the snapshot reports how many checked models Codex can actually drive", async () => {
