@@ -44,3 +44,14 @@ test("file-tool overlay only names the installed façade tools", () => {
   assert.match(applied, /Create files with write/);
   assert.doesNotMatch(applied, /read_file/);
 });
+
+test("GPT-OSS local memory overlay pins machine and model identity", () => {
+  const instructions = applyInstructionOverlay("Base instructions.", "durable-local-memory-gpt-oss");
+  assert.match(instructions, /M2 Ultra and 64 GB/i);
+  assert.match(instructions, /gpt-oss:20b/i);
+  assert.match(instructions, /qwen3-coder-next:q4_K_M/i);
+  assert.match(instructions, /Never pass visible to Chrome or Edge/i);
+  assert.match(instructions, /immediately retry once without visible/i);
+  assert.match(instructions, /tab title, URL, or accessibility tree as proof/i);
+  assert.match(instructions, /AGENTS\.md Remembered context/i);
+});

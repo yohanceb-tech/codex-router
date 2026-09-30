@@ -125,6 +125,14 @@ function clientRoutedTools() {
     },
     {
       type: "namespace",
+      name: "mcp__cua_repl",
+      tools: [
+        { type: "function", name: "js" },
+        { type: "function", name: "js_reset" },
+      ],
+    },
+    {
+      type: "namespace",
       name: "mcp__codex_apps__github",
       tools: [{ type: "function", name: "fetch_issue" }],
     },
@@ -167,12 +175,15 @@ test("flattenNamespaceTools flattens every namespace, including MCP ones", () =>
   // delimiter.
   assert.ok(names.includes("mcp__node_repl__js"));
   assert.ok(names.includes("mcp__node_repl__js_reset"));
+  assert.ok(names.includes("mcp__cua_repl__js"));
+  assert.ok(names.includes("mcp__cua_repl__js_reset"));
   assert.ok(names.includes("mcp__codex_apps__github__fetch_issue"));
   // No namespace entries survive.
   assert.ok(tools.every((tool) => tool?.type !== "namespace"), "no namespace entries remain");
   // The map records exactly the flattened namespaces and their tools.
   assert.deepEqual([...namespaces.get("collaboration")].sort(), ["spawn_agent", "wait_agent"]);
   assert.deepEqual([...namespaces.get("mcp__node_repl")].sort(), ["js", "js_reset"]);
+  assert.deepEqual([...namespaces.get("mcp__cua_repl")].sort(), ["js", "js_reset"]);
   assert.deepEqual([...namespaces.get("mcp__codex_apps__github")], ["fetch_issue"]);
 });
 

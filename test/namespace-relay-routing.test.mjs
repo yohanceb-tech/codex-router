@@ -193,6 +193,14 @@ function routedRequestPayload(stream = true, model = "opencode-go/deepseek-v4-fl
       },
       {
         type: "namespace",
+        name: "mcp__cua_repl",
+        tools: [
+          { type: "function", name: "js" },
+          { type: "function", name: "js_reset" },
+        ],
+      },
+      {
+        type: "namespace",
         name: "mcp__codex_apps__github",
         tools: [
           {
@@ -1422,6 +1430,8 @@ test("routed request flattens every namespace to the gateway and restores calls 
   assert.ok(names.includes("codex_app__create_thread"), "merged codex_app tool flattened");
   assert.ok(names.includes("mcp__node_repl__js"), "node_repl js flattened");
   assert.ok(names.includes("mcp__node_repl__js_reset"), "node_repl js_reset flattened");
+  assert.ok(names.includes("mcp__cua_repl__js"), "cua_repl js flattened");
+  assert.ok(names.includes("mcp__cua_repl__js_reset"), "cua_repl js_reset flattened");
   assert.ok(names.includes("tool_search"), "native tool_search exposed as a function");
   assert.ok(
     names.includes("mcp__codex_apps__github__fetch_issue"),

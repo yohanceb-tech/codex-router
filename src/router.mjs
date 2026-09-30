@@ -99,6 +99,7 @@ import {
   RUNTIME_PROVIDERS,
   USER_MODELS_SKIPPED,
   providerForModel,
+  resolveProviderBaseUrl,
 } from "./model-registry.mjs";
 import { isProviderPrefixedSlug, unroutedModelError } from "./unrouted-model.mjs";
 import { createHealthCache } from "./health-cache.mjs";
@@ -953,10 +954,35 @@ function routedHeaders() {
   };
 }
 
-// DeepSeek's current model already speaks Codex's wire protocol. The shared
-// API forwarder still owns credentials and upstream transport; bypass only
-// LiteLLM, whose unknown-model fallback simulates native Responses streaming.
+function usesNativeOllamaResponses(route) {
+  const provider = providerForModel(route);
+  return provider?.keyless === true && provider?.transport === "ollama";
+}
+
+function routedResponsesModel(route) {
+  return usesNativeOllamaResponses(route) ? route.upstreamModel : route.gatewayModel;
+}
+
+function normalizeNativeOllamaReasoning(payload, route) {
+  if (
+    usesNativeOllamaResponses(route) &&
+    route.supportsReasoningSummaries !== true
+  ) {
+    delete payload.reasoning;
+    delete payload.reasoning_effort;
+  }
+  return payload;
+}
+
+// DeepSeek and local Ollama already speak Codex's Responses wire protocol.
+// Bypass LiteLLM for those routes: translating a native Ollama function call
+// through Chat Completions can turn it into assistant text, so Codex never
+// executes the tool even though the model selected it correctly.
 function routedResponsesTarget(route) {
+  if (usesNativeOllamaResponses(route)) {
+    const provider = providerForModel(route);
+    return `${resolveProviderBaseUrl(provider).baseUrl}/responses`;
+  }
   return `${usesDeepSeekResponses(route) ? API_BASE : GATEWAY_BASE}/responses`;
 }
 
@@ -2818,7 +2844,7 @@ async function summarizeWith(
   );
   let body = {
     ...payload,
-    model: route.gatewayModel,
+    model: routedResponsesModel(route),
     stream: false,
     // An empty tool list already disables tool use on every forwarder, and
     // xAI rejects tool_choice "none" paired with it, so the field is omitted
@@ -2834,6 +2860,7 @@ async function summarizeWith(
   normalizeAutoToolChoice(body, route);
   delete body.previous_response_id;
   delete body.client_metadata;
+  normalizeNativeOllamaReasoning(body, route);
   applyRoutedServiceTier(body, payload, route);
   body = applyZenFreeIncludeCompatibility(body, route);
   // Compaction re-enters the same provider as the routed turn. Strict Chat
@@ -3645,7 +3672,7 @@ async function buildRoutedRequest({ request, payload, route, agedInput }) {
   let routed = {
     ...payload,
     tools,
-    model: route.gatewayModel,
+    model: routedResponsesModel(route),
     input: routedInput,
   };
   if (
@@ -3687,12 +3714,12 @@ async function buildRoutedRequest({ request, payload, route, agedInput }) {
   // Native OpenAI traffic keeps client_metadata; routed providers do not
   // consume it and the strict ones reject the unknown field.
   delete routed.client_metadata;
-  // Codex sends reasoning as an object. LiteLLM's Ollama path tests that value
-  // for membership of a string set, which raises on a dict and fails the whole
-  // turn -- 210 of them here before this was caught. Ollama has no
-  // reasoning-effort concept to map it onto anyway, so drop it rather than
-  // translate it into something the model never asked for.
-  if (provider?.keyless) {
+  // Codex sends reasoning as an object. Legacy keyless Chat adapters may test
+  // that value as a string and fail the turn, so keep the old omission there.
+  // Ollama's native Responses endpoint accepts the object and uses its effort,
+  // so the direct local route preserves it.
+  normalizeNativeOllamaReasoning(routed, route);
+  if (provider?.keyless && !usesNativeOllamaResponses(route)) {
     delete routed.reasoning;
     delete routed.reasoning_effort;
   }

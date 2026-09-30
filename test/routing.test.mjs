@@ -3834,6 +3834,7 @@ test("API forwarder fills only missing Gemini thought signatures", async () => {
         web_search_options: { search_context_size: "medium" },
         thinking: { type: "enabled" },
         think: true,
+        access_programs: { cyber: "standard" },
         store: true,
         logit_bias: { 123: -100 },
         messages: [
@@ -3873,10 +3874,11 @@ test("API forwarder fills only missing Gemini thought signatures", async () => {
     assert.equal(body.model, "gemini-3.5-flash");
     // Google's OpenAI-compatible endpoint 400s on any non-OpenAI field, so the
     // web search, thinking/think reasoning controls, and the OpenAI-only
-    // store/logit_bias fields are stripped outright.
+    // access_programs/store/logit_bias fields are stripped outright.
     assert.equal(body.web_search_options, undefined);
     assert.equal(body.thinking, undefined);
     assert.equal(body.think, undefined);
+    assert.equal(body.access_programs, undefined);
     assert.equal(body.store, undefined);
     assert.equal(body.logit_bias, undefined);
     // Google accepts images only on user turns: the user image survives, the

@@ -165,6 +165,23 @@ test("a model without tool support is never published to the Codex picker", asyn
   const byId = Object.fromEntries(entries.map((e) => [e.upstreamModel, e]));
   assert.deepEqual(byId["qwen3:4b"].inputModalities, ["text"]);
   assert.deepEqual(byId["qwen2.5vl:3b"].inputModalities, ["text", "image"]);
+  assert.equal(byId["qwen3:4b"].supportsReasoningSummaries, false);
+});
+
+test("proven local memory overlays are assigned by model family", async () => {
+  const { syncLocalUserModels } = await import("../src/local-models.mjs");
+  const entries = syncLocalUserModels({
+    enabled: ["qwen3-coder-next:q4_K_M", "gpt-oss:20b", "devstral:latest"],
+    capabilitiesFor: (tag) => tag === "gpt-oss:20b"
+      ? ["completion", "tools", "thinking"]
+      : ["completion", "tools"],
+  });
+  const byId = Object.fromEntries(entries.map((entry) => [entry.upstreamModel, entry]));
+  assert.equal(byId["qwen3-coder-next:q4_K_M"].instructionOverlay, "durable-local-memory");
+  assert.equal(byId["gpt-oss:20b"].instructionOverlay, "durable-local-memory-gpt-oss");
+  assert.equal(byId["gpt-oss:20b"].supportsReasoningSummaries, true);
+  assert.equal(byId["qwen3-coder-next:q4_K_M"].supportsReasoningSummaries, false);
+  assert.equal(byId["devstral:latest"].instructionOverlay, undefined);
 });
 
 test("the snapshot reports how many checked models Codex can actually drive", async () => {

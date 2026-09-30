@@ -15,6 +15,7 @@ const INTERNAL_KEY = "test-internal-service-key-with-sufficient-length";
 const CALLER_KEY = "test-router-caller-capability-with-sufficient-length";
 const LOCAL_SLUG = "local/qwen3.8:27b-mlx";
 const LOCAL_GATEWAY_MODEL = "local-qwen3-8-27b-mlx";
+const THINKING_SLUG = "local/gpt-oss:20b";
 
 function localFixture() {
   const directory = mkdtempSync(path.join(os.tmpdir(), "local-ollama-route-"));
@@ -41,6 +42,25 @@ function localFixture() {
           supportsApplyPatchTool: false,
           multiAgentVersion: "v1",
           compHash: "local-qwen3-8-27b-mlx-user-v1",
+        },
+        {
+          slug: THINKING_SLUG,
+          gatewayModel: "local-gpt-oss-20b",
+          upstreamModel: "gpt-oss:20b",
+          provider: "local",
+          listed: true,
+          displayName: "GPT-OSS 20B (local, experimental)",
+          description: "Test fixture.",
+          priority: 901,
+          defaultEffort: "high",
+          reasoningLevels: [{ effort: "high", description: "Adaptive reasoning" }],
+          supportsReasoningSummaries: true,
+          contextWindow: 32768,
+          autoCompact: 28000,
+          inputModalities: ["text"],
+          supportsApplyPatchTool: false,
+          multiAgentVersion: "v1",
+          compHash: "local-gpt-oss-20b-user-v1",
         },
       ],
     }),
@@ -89,6 +109,7 @@ function startRouter(fixture, gatewayPort, routerPort) {
       CODEX_ROUTER_PORT: String(routerPort),
       CODEX_ROUTER_STATE_DIR: fixture.directory,
       MODEL_ROUTER_USER_MODELS: fixture.userModels,
+      MODEL_ROUTER_LOCAL_BASE_URL: `http://127.0.0.1:${gatewayPort}/v1`,
       CODEX_ROUTER_GATEWAY_BASE_URL: `http://127.0.0.1:${gatewayPort}/v1`,
       CODEX_ROUTER_OAUTH_HEALTH_URL: `http://127.0.0.1:${gatewayPort}/health`,
       CODEX_ROUTER_API_HEALTH_URL: `http://127.0.0.1:${gatewayPort}/health`,
@@ -159,7 +180,7 @@ test("local LiteLLM routes are single-shot Ollama-native deployments", () => {
   }
 });
 
-test("the router forwards one local input and one tool definition without tag-specific expansion", async () => {
+test("the router sends local turns directly to Ollama's native Responses endpoint", async () => {
   const fixture = localFixture();
   const requests = [];
   const gateway = await mockServer(async (request, response) => {
@@ -204,7 +225,7 @@ test("the router forwards one local input and one tool definition without tag-sp
     assert.equal(response.status, 200, router.testErrors());
     assert.equal(requests.length, 1);
     const forwarded = requests[0];
-    assert.equal(forwarded.model, LOCAL_GATEWAY_MODEL);
+    assert.equal(forwarded.model, "qwen3.8:27b-mlx");
     assert.equal(forwarded.instructions, instructionMarker);
     assert.deepEqual(forwarded.input, [
       {
@@ -214,11 +235,26 @@ test("the router forwards one local input and one tool definition without tag-sp
       },
     ]);
     assert.equal(forwarded.tools.filter((tool) => tool?.name === "local_payload_probe").length, 1);
-    assert.equal(forwarded.reasoning, undefined, "Ollama must not receive Codex's reasoning object");
+    assert.equal(forwarded.reasoning, undefined, "a non-thinking Ollama model must not receive reasoning");
     const serialized = JSON.stringify(forwarded);
     for (const marker of [inputMarker, instructionMarker, toolMarker]) {
       assert.equal(serialized.split(marker).length - 1, 1, `${marker} was expanded or duplicated`);
     }
+
+    const thinkingResponse = await fetch(`${callerBaseUrl(routerPort, CALLER_KEY)}/responses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: THINKING_SLUG,
+        reasoning: { effort: "high" },
+        input: "hello",
+        tools: [],
+      }),
+    });
+    assert.equal(thinkingResponse.status, 200, router.testErrors());
+    assert.equal(requests.length, 2);
+    assert.equal(requests[1].model, "gpt-oss:20b");
+    assert.deepEqual(requests[1].reasoning, { effort: "high" });
   } finally {
     await stop(router, gateway.server);
     rmSync(fixture.directory, { recursive: true, force: true });

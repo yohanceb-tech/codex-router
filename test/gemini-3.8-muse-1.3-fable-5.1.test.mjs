@@ -70,6 +70,12 @@ test("every Gemini 3.8 Flash route records the upstream id and window", () => {
   }
 });
 
+test("OpenRouter Gemini 3.8 Flash keeps a practical Codex output reservation", () => {
+  const model = MODEL_BY_SLUG.get("openrouter/gemini-3.8-flash");
+  assert.equal(model?.maxOutputTokens, 8_192);
+  assert.ok(model.contextWindow - model.autoCompact >= model.maxOutputTokens);
+});
+
 test("every Muse Spark 1.2 OpenRouter route records the upstream id and window", () => {
   for (const [slug, upstreamModel, contextWindow, autoCompact] of MUSE_12_ROUTES) {
     const model = MODEL_BY_SLUG.get(slug);

@@ -1,51 +1,35 @@
 ---
 name: codex-in-app-browser
-description: Drive the Codex in-app browser (open, navigate, click, type, screenshot, read page state) through the app's own node_repl runtime. Use when the session uses a custom (non-OpenAI) model, for example deepseek-v4-flash or mimo-v2.5, and the user asks to use the in-app browser, open or navigate a page in it, test a local app in a browser, or click, type, or take a screenshot in the Codex browser panel.
+description: Drive the Codex in-app browser through the unified Computer Use runtime. Use when a custom (non-OpenAI) model is asked to open, navigate, click, type, inspect, or capture a page in the Codex browser panel.
 ---
 
 # Codex In-App Browser
 
-The tool is `mcp__node_repl__js`. It is available in this session.
+The current Codex desktop runtime is exposed to custom models as
+`mcp__cua_repl__js`. Do not use the retired `mcp__node_repl__js` tool or load a
+separate browser runtime.
 
-## First: read the official skill
+## First call
 
-The official skill is authoritative. Read it before any browser work:
-
-`~/.codex/plugins/cache/openai-bundled/browser/<version>/skills/control-in-app-browser/SKILL.md`
-
-Find the latest `<version>` directory (for example `26.803.41515`).
-
-## Bootstrap (once per session)
-
-Send this as ONE line through `mcp__node_repl__js`:
+To open a visible in-app browser tab, make this the only API call in the first
+tool invocation:
 
 ```js
-if (globalThis.agent?.browsers == null) { const { setupBrowserRuntime } = await import("<plugin root>/scripts/browser-client.mjs"); globalThis.agent = await setupBrowserRuntime(); }
+let tab = await cua.createBrowserTab("iab", "https://example.com", { visible: true });
 ```
 
-Replace `<plugin root>` with the browser plugin path. Then bind the
-in-app browser and read its documentation:
-
-```js
-globalThis.iab = await agent.browsers.get("iab");
-nodeRepl.write(await iab.documentation());
-```
-
-Read the complete documentation output before interacting with the page.
+For an existing tab mentioned by the user, use the matching `cua.getTab(...)`
+entry point instead. Read the documentation and initial page state returned by
+the first call, then reuse the `tab` binding for navigation and interaction.
 
 ## Rules
 
-- Send code as ONE line, or use `@file:<path>` with a trailing newline.
-  The runtime fires on newline; input without a trailing newline silently
-  does nothing.
-- Reuse the existing `agent` and `iab` bindings on later turns. Do not
-  reinitialize.
-- `open_in_codex` only OPENS a tab. It cannot click, type, or read. Use
-  `mcp__node_repl__js` for interaction.
-- Never start your own node_repl process and never write a side-channel
-  driver. Use the tool you were given.
+- Use only APIs described by the tool or returned documentation.
+- `open_in_codex` can display a browser tab but cannot interact with it; use
+  `mcp__cua_repl__js` for interaction.
+- Never start a side-channel driver or separate Node/REPL process.
 
 ## If the tool is missing
 
-Stop and report that `mcp__node_repl__js` is not in the tool list. Do not
-build workarounds.
+Stop and report that `mcp__cua_repl__js` is not in the tool list. Do not invent
+another namespace and do not build a workaround.

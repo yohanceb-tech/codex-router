@@ -185,6 +185,7 @@ export function syncLocalUserModels({
           inputModalities: capabilities.includes("vision") ? ["text", "image"] : ["text"],
           contextWindow: LOCAL_CONTEXT_WINDOW,
           autoCompact: LOCAL_AUTO_COMPACT,
+          supportsReasoningSummaries: capabilities.includes("thinking"),
           description: `${displayName} running locally through Ollama on this machine.`,
         },
       }),
@@ -201,6 +202,13 @@ export function syncLocalUserModels({
       // Observed without this: llama3.2:3b inventing a `create_goal` call and
       // emitting it as prose.
       supportsApplyPatchTool: false,
+      // Models proven to lose lower-priority AGENTS.md memory in long Codex
+      // prompts get a durable identity/context guard in their system template.
+      ...(String(tag).startsWith("qwen3-coder-next:")
+        ? { instructionOverlay: "durable-local-memory" }
+        : String(tag).startsWith("gpt-oss:")
+          ? { instructionOverlay: "durable-local-memory-gpt-oss" }
+        : {}),
       // Driving subagents is a harder job than answering a turn, and no local
       // model has been shown to do it here. Claiming v2 would offer them as
       // spawn targets on that untested basis.

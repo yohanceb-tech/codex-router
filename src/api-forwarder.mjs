@@ -949,6 +949,65 @@ function stripEmptyTools(payload) {
   return changed;
 }
 
+function markOpenRouterGeminiSystemPromptForCaching(payload, model, provider) {
+  if (
+    provider?.id !== "openrouter" ||
+    model?.upstreamModel !== "google/gemini-3.8-flash" ||
+    !Array.isArray(payload.messages)
+  ) {
+    return false;
+  }
+
+  const index = payload.messages.findIndex((message) =>
+    message?.role === "system" || message?.role === "developer"
+  );
+  if (index < 0) return false;
+
+  const message = payload.messages[index];
+  if (typeof message.content === "string") {
+    if (!message.content) return false;
+    payload.messages[index] = {
+      ...message,
+      content: [{
+        type: "text",
+        text: message.content,
+        cache_control: { type: "ephemeral" },
+      }],
+    };
+    return true;
+  }
+  if (!Array.isArray(message.content)) return false;
+  if (message.content.some((part) => part?.cache_control)) return false;
+
+  const textIndex = message.content.findLastIndex((part) =>
+    part?.type === "text" && typeof part.text === "string" && part.text.length > 0
+  );
+  if (textIndex < 0) return false;
+  const content = [...message.content];
+  content[textIndex] = {
+    ...content[textIndex],
+    cache_control: { type: "ephemeral" },
+  };
+  payload.messages[index] = { ...message, content };
+  return true;
+}
+
+function clampOpenRouterGeminiCompletion(payload, model, provider) {
+  if (
+    provider?.id !== "openrouter" ||
+    model?.upstreamModel !== "google/gemini-3.8-flash" ||
+    !Number.isInteger(model.maxOutputTokens)
+  ) {
+    return false;
+  }
+  const requested = Number(payload.max_tokens);
+  if (Number.isFinite(requested) && requested > 0 && requested <= model.maxOutputTokens) {
+    return false;
+  }
+  payload.max_tokens = model.maxOutputTokens;
+  return true;
+}
+
 function normalizeBody(buffer, contentType, route) {
   if (!buffer.length || !String(contentType || "").includes("application/json")) {
     const error = new Error("API-provider requests require a JSON body.");
@@ -1068,7 +1127,11 @@ function normalizeBody(buffer, contentType, route) {
     delete payload.web_search_options;
     delete payload.thinking;
     delete payload.think;
-    // store and logit_bias are OpenAI-only; Google's surface accepts neither.
+    // access_programs, store, and logit_bias are OpenAI-only; Google's
+    // compatibility surface accepts none of them. Codex began sending
+    // access_programs in ordinary app turns, and Google rejects unknown
+    // top-level fields instead of ignoring them.
+    delete payload.access_programs;
     // (frequency_penalty/presence_penalty/seed are supported, so they stay.)
     delete payload.store;
     delete payload.logit_bias;
@@ -1437,6 +1500,8 @@ function normalizeBody(buffer, contentType, route) {
     }
   }
   if (adapter) payload = adapter.normalizeBody(payload, model);
+  markOpenRouterGeminiSystemPromptForCaching(payload, model, provider);
+  clampOpenRouterGeminiCompletion(payload, model, provider);
   clampUnionAlphaCompletion(payload, model);
   const targetPath = adapter?.targetPath
     ? adapter.targetPath({ model, body: payload })
@@ -1494,6 +1559,10 @@ function upstreamHeaders(requestHeaders, body, apiKey, provider, extraHeaders = 
   }
   headers["User-Agent"] = `codex-router/${VERSION}`;
   headers["Accept-Encoding"] = "identity";
+  if (provider.id === "openrouter") {
+    const sessionId = threadIdFromHeaders(requestHeaders);
+    if (sessionId) headers["x-session-id"] = sessionId;
+  }
   Object.assign(headers, extraHeaders);
   // OpenCode Go/Zen affinity must win over any session.headers merge above:
   // starting 2026-09-06 their edge may refuse requests without this header.

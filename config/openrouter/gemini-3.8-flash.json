@@ -27,6 +27,7 @@
       ],
       "contextWindow": 1048576,
       "autoCompact": 943000,
+      "maxOutputTokens": 8192,
       "inputModalities": [
         "text"
       ],

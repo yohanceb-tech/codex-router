@@ -258,6 +258,75 @@ test("API forwarder trims only official and explicitly opted-in trailing model t
   }
 });
 
+test("OpenRouter Gemini 3.8 Flash marks the stable system prefix and pins the thread", async () => {
+  const upstreamRequests = [];
+  const upstream = await mockServer(async (request, response) => {
+    upstreamRequests.push({
+      body: await bodyJson(request),
+      sessionId: request.headers["x-session-id"],
+    });
+    json(response, 200, {
+      id: "chatcmpl_cache_test",
+      object: "chat.completion",
+      model: "google/gemini-3.8-flash",
+      choices: [{ index: 0, message: { role: "assistant", content: "ok" }, finish_reason: "stop" }],
+      usage: { prompt_tokens: 8, completion_tokens: 1, total_tokens: 9 },
+    });
+  });
+  const stateDir = mkdtempSync(path.join(os.tmpdir(), "gemini-cache-state-"));
+  const forwarderPort = await openPort();
+  const forwarder = run("api-forwarder.mjs", {
+    CODEX_ROUTER_API_PORT: String(forwarderPort),
+    MODEL_ROUTER_STATE_DIR: stateDir,
+    OPENROUTER_API_BASE_URL: `http://127.0.0.1:${upstream.port}`,
+    OPENROUTER_API_KEY: "TEST_OPENROUTER_API_KEY",
+    CODEX_ROUTER_QUIET: "1",
+  });
+  const threadId = "1c43a6d2-4233-4ba7-a201-bc7d181e17e7";
+
+  try {
+    await waitFor(`http://127.0.0.1:${forwarderPort}/health`, forwarder, {
+      Authorization: `Bearer ${INTERNAL_KEY}`,
+    });
+    const response = await fetch(`http://127.0.0.1:${forwarderPort}/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${INTERNAL_KEY}`,
+        "Content-Type": "application/json",
+        "Thread-Id": threadId,
+      },
+      body: JSON.stringify({
+        model: "openrouter-gemini-3-8-flash",
+        max_tokens: 65_536,
+        messages: [
+          { role: "system", content: "stable coding-agent instructions" },
+          { role: "user", content: "dynamic task" },
+        ],
+      }),
+    });
+    assert.equal(response.status, 200, forwarder.testErrors());
+    assert.equal(upstreamRequests.length, 1);
+    assert.equal(upstreamRequests[0].sessionId, threadId);
+    assert.equal(upstreamRequests[0].body.model, "google/gemini-3.8-flash");
+    assert.equal(upstreamRequests[0].body.max_tokens, 8_192);
+    assert.deepEqual(upstreamRequests[0].body.messages, [
+      {
+        role: "system",
+        content: [{
+          type: "text",
+          text: "stable coding-agent instructions",
+          cache_control: { type: "ephemeral" },
+        }],
+      },
+      { role: "user", content: "dynamic task" },
+    ]);
+  } finally {
+    await stopChild(forwarder);
+    await closeServer(upstream.server);
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
 test("router trims only official and explicitly opted-in trailing Responses model turns", async () => {
   const gatewayRequests = [];
   const healthRequests = [];
