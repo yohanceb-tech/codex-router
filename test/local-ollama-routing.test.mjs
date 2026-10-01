@@ -290,6 +290,41 @@ test("the router sends local turns directly to Ollama's native Responses endpoin
         additionalProperties: false,
       },
     });
+
+    const searchResponse = await fetch(`${callerBaseUrl(routerPort, CALLER_KEY)}/responses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: THINKING_SLUG,
+        input: "research this",
+        web_search_options: { search_context_size: "medium" },
+        include: ["reasoning.encrypted_content", "web_search_call.action.sources"],
+        tools: [
+          { type: "web_search", search_context_size: "medium" },
+          {
+            type: "function",
+            name: "mcp__cua_repl__js",
+            description: "Use the browser.",
+            parameters: {
+              type: "object",
+              properties: { code: { type: "string" } },
+              required: ["code"],
+            },
+          },
+        ],
+        tool_choice: "required",
+      }),
+    });
+    assert.equal(searchResponse.status, 200, router.testErrors());
+    assert.equal(requests.length, 4);
+    assert.equal(requests[3].web_search_options, undefined);
+    assert.deepEqual(requests[3].include, ["reasoning.encrypted_content"]);
+    assert.equal(requests[3].tools.some((tool) => tool?.type === "web_search"), false);
+    assert.equal(
+      requests[3].tools.some((tool) => tool?.name === "mcp__cua_repl__js"),
+      true,
+    );
+    assert.equal(requests[3].tool_choice, "required");
   } finally {
     await stop(router, gateway.server);
     rmSync(fixture.directory, { recursive: true, force: true });

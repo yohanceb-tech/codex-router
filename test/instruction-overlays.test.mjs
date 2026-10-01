@@ -53,10 +53,17 @@ test("GPT-OSS local memory overlay pins machine and model identity", () => {
   assert.match(instructions, /Never pass visible to Chrome or Edge/i);
   assert.match(instructions, /immediately retry once without visible/i);
   assert.match(instructions, /tab title, URL, or accessibility tree as proof/i);
+  assert.match(instructions, /Hosted web_search is unavailable/i);
+  assert.match(instructions, /createBrowserTab\("iab", url, \{ visible: false \}\)/i);
+  assert.match(instructions, /Cite the source URLs you actually inspected/i);
   assert.match(instructions, /tool schema as authoritative/i);
+  assert.match(instructions, /cmd as one shell-command string/i);
   assert.match(instructions, /omit justification during ordinary sandboxed work/i);
   assert.match(instructions, /approval policy is never or permissions are disabled/i);
   assert.match(instructions, /read the applicable AGENTS\.md/i);
+  assert.match(instructions, /package\/build manifest before choosing commands/i);
+  assert.match(instructions, /Do not guess pytest, npm, or another test runner/i);
+  assert.match(instructions, /complete raw patch string/i);
   assert.match(instructions, /Do not use recursive directory dumps/i);
   assert.match(instructions, /Correct the arguments once/i);
   assert.match(instructions, /Preserve unrelated user changes/i);

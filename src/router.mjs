@@ -1018,9 +1018,20 @@ function normalizeAutoToolChoice(payload, route) {
 function routedSearchCompatibility(payload, route) {
   const searchMode = routedModelSearchMode(route);
   const provider = providerForModel(route);
-  const compatiblePayload = provider?.generic !== true || searchMode !== undefined
-    ? payload
-    : stripUnsupportedHostedSearch(payload, { model: route.slug });
+  // Codex can attach its ambient hosted-search tool even when the selected
+  // catalog model advertises supports_search_tool=false. Generic providers
+  // already stripped that ambient extension; the built-in local Ollama route
+  // needs the same boundary or GPT-OSS can select `web_search` and Ollama will
+  // close the /responses stream because it cannot execute that hosted tool.
+  // Keep the guard scoped to these capability-driven routes: several curated
+  // compatibility profiles intentionally own their provider-specific search
+  // wire shape. Ordinary function tools (including one literally named
+  // web_search) remain untouched by stripUnsupportedHostedSearch.
+  const shouldStrip =
+    searchMode === undefined && (provider?.generic === true || provider?.id === "local");
+  const compatiblePayload = shouldStrip
+    ? stripUnsupportedHostedSearch(payload, { model: route.slug })
+    : payload;
   return { payload: compatiblePayload, searchMode };
 }
 

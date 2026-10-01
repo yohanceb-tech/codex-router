@@ -112,6 +112,11 @@ const LOCAL_CONTEXT_WINDOW = 32768;
 const LOCAL_AUTO_COMPACT = 28000;
 const LARGE_LOCAL_CONTEXT_WINDOW = 131072;
 const LARGE_LOCAL_AUTO_COMPACT = 114688;
+const GPT_OSS_REASONING_LEVELS = Object.freeze([
+  Object.freeze({ effort: "low", description: "Fast responses for simple tasks" }),
+  Object.freeze({ effort: "medium", description: "Balanced speed and reasoning" }),
+  Object.freeze({ effort: "high", description: "Deep reasoning for difficult work" }),
+]);
 
 function localContextLimits(tag, capacity) {
   const memoryBytes = Number(capacity?.totalMemoryBytes);
@@ -204,6 +209,12 @@ export function syncLocalUserModels({
           inputModalities: capabilities.includes("vision") ? ["text", "image"] : ["text"],
           ...contextLimits,
           supportsReasoningSummaries: capabilities.includes("thinking"),
+          ...(String(tag).startsWith("gpt-oss:")
+            ? {
+                defaultEffort: "high",
+                reasoningLevels: GPT_OSS_REASONING_LEVELS.map((level) => ({ ...level })),
+              }
+            : {}),
           description: `${displayName} running locally through Ollama on this machine.`,
         },
       }),

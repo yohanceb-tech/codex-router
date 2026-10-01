@@ -181,6 +181,11 @@ test("proven local memory overlays are assigned by model family", async () => {
   assert.equal(byId["gpt-oss:20b"].instructionOverlay, "durable-local-memory-gpt-oss");
   assert.equal(byId["gpt-oss:20b"].supportsReasoningSummaries, true);
   assert.equal(byId["gpt-oss:20b"].supportsApplyPatchTool, true);
+  assert.equal(byId["gpt-oss:20b"].defaultEffort, "high");
+  assert.deepEqual(
+    byId["gpt-oss:20b"].reasoningLevels.map((level) => level.effort),
+    ["low", "medium", "high"],
+  );
   assert.equal(byId["qwen3-coder-next:q4_K_M"].supportsReasoningSummaries, false);
   assert.equal(byId["qwen3-coder-next:q4_K_M"].supportsApplyPatchTool, false);
   assert.equal(byId["devstral:latest"].instructionOverlay, undefined);
