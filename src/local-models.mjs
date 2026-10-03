@@ -237,6 +237,8 @@ export function syncLocalUserModels({
         ? { instructionOverlay: "durable-local-memory" }
         : String(tag).startsWith("gpt-oss:")
           ? { instructionOverlay: "durable-local-memory-gpt-oss" }
+        : String(tag).startsWith("gemma4:")
+          ? { instructionOverlay: "gemma-browser-tools" }
         : {}),
       // Driving subagents is a harder job than answering a turn, and no local
       // model has been shown to do it here. Claiming v2 would offer them as
