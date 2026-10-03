@@ -9,7 +9,7 @@ Prerequisites: Codex, Python 3.11+, Node.js 22.19+, Ollama, and the normal codex
 ```sh
 git clone --branch fix/gpt-oss-codex-integration-2026-09-30 https://github.com/yohanceb-tech/codex-router.git ~/.local/share/codex-router
 cd ~/.local/share/codex-router
-git checkout gpt-oss-action-discipline-2026-10-03
+git checkout gpt-oss-runtime-tools-2026-10-03
 ollama pull gpt-oss:20b
 ollama pull gemma4:latest
 # Complete normal router installation and publish GPT-OSS using its local-model controls.
@@ -45,3 +45,11 @@ python3 local-agent-kit/evaluate.py --case filter --output /absolute/path/to/ano
 The suite measures title/status filtering, terminal-state cancellation, and stale polling preserving cancellations while including new jobs. Each case starts broken and is checked independently with immutable tests. It records successful retrieval tool use, independent behavior checks, whether the agent actually ran tests, latency, timeout, and Codex exit status. An overall pass requires the agent to run verification as well as produce correct code. The router exact-route header prevents silently substituting another model. The profile must already be installed. Use a fresh output directory each time. Compare repeated runs before claiming accuracy or speed improvement. These are synthetic coding tasks, not live Weble browser, backend, or production integration coverage. Keep results outside the source repository; logs are local evidence and should not be uploaded without review.
 
 The action-capability instructions require inspecting real offered tools before declaring browser/chat operations unavailable. `check_actions.py INSTRUCTIONS_FILE OUTPUT_DIRECTORY` performs a compact native-Ollama tool-selection check with mock tool definitions; it never logs in, edits a site, or messages chats. This check is not a substitute for an end-to-end desktop test.
+
+## Runtime capability summary and structured verification
+
+For GPT-OSS only, the router appends a short summary of chat/browser/retrieval/edit/check tools derived from the actual provider-facing declarations. It adds no tool definitions, executes no calls, and changes no permission policy. Missing tools are identified as not declared, rather than assumed available. Native/other model requests are untouched.
+
+run_project_check supports Node file execution, Node tests, Node syntax checking, and existing npm test/build/typecheck/lint scripts. It uses argv without shell interpolation, returns observed status and bounded output, and kills its process group after a bounded timeout. Read/search a project first; omit root to reuse that directory within the MCP process, or supply another explicit absolute root. This context is transient and is not a sandbox. Project checks execute project code with the user's privileges and may write files or use the network, just as existing build/test scripts do; run only checks authorized for a trusted project. Only this tool is added to the existing kit's explicit automatic approvals.
+
+The focused profile remains optional CLI configuration. The tools and skill are available after restarting the desktop app; start a fresh GPT-OSS chat to discard earlier incorrect capability assumptions. The router's generated guide applies to desktop requests as well as the CLI when those tools are declared. No changes to model weights or hosted fallback were made.

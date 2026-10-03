@@ -78,6 +78,7 @@ import {
   nativeExecRelayTarget,
   rewriteGrokFacadeToolChoice,
 } from "./grok-tool-facade.mjs";
+import { applyLocalRuntimeToolContext } from "./local-agent-runtime.mjs";
 import { applyGrokFileToolsOverlay } from "./instruction-overlays.mjs";
 import { ResponsesHeartbeatTransform } from "./responses-heartbeat.mjs";
 import { messagePhaseTransform } from "./message-phase.mjs";
@@ -3703,6 +3704,7 @@ async function buildRoutedRequest({ request, payload, route, agedInput }) {
       installedFacade,
     );
   }
+  routed = applyLocalRuntimeToolContext(routed, route);
   applyRoutedServiceTier(routed, payload, route);
   routed = applyZenFreeIncludeCompatibility(routed, route);
   if (routedToolChoice !== payload.tool_choice) routed.tool_choice = routedToolChoice;

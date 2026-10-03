@@ -2,9 +2,11 @@
 """Repeatable synthetic Weble coding evaluations through real Codex; no live account."""
 import argparse,pathlib,json,subprocess,time,os,signal
 CASES={
- 'filter':{'query':'filterJobs status title','source':'export function filterJobs(jobs, query, status) { return jobs; }\n','task':'Fix filterJobs: match title case-insensitively, filter exact status unless all, preserve input order and objects.','checks':'''const jobs=[{title:'Ocean',status:'complete'},{title:'Launch',status:'failed'}];
+ 'filter':{'query':'filterJobs status title','source':'export function filterJobs(jobs, query, status) { return jobs; }\n','task':'Fix filterJobs: match title case-insensitively, filter exact case-sensitive status unless all, preserve input order and objects.','checks':'''const jobs=[{title:'Ocean',status:'complete'},{title:'Launch',status:'failed'}];
 assert.deepEqual(filterJobs(jobs,'LA','all'),[jobs[1]]);
 assert.deepEqual(filterJobs(jobs,'','failed'),[jobs[1]]);
+assert.deepEqual(filterJobs(jobs,'','FAILED'),[]);
+assert.equal(filterJobs(jobs,'','all')[0],jobs[0]);
 assert.deepEqual(filterJobs(jobs,'missing','all'),[]);
 assert.equal(jobs.length,2);''','symbol':'filterJobs'},
  'cancel':{'query':'cancelJob terminal status','source':"export function cancelJob(job) { return {...job,status:'cancelled'}; }\n",'task':'Fix cancelJob: queued/running jobs become cancelled; complete/failed/cancelled jobs retain their state; never mutate input.','checks':'''for(const status of ['queued','running']){const job={id:1,status};assert.equal(cancelJob(job).status,'cancelled');assert.equal(job.status,status);}
@@ -44,6 +46,9 @@ def main():
    try:
     row=json.loads(line);item=row.get('item',{})
     if row.get('type')=='item.completed' and item.get('type')=='command_execution' and 'node verify.mjs' in item.get('command','') and item.get('exit_code')==0:agent_test=True
+    if row.get('type')=='item.completed' and item.get('tool')=='run_project_check' and item.get('status')=='completed' and not item.get('error') and item.get('arguments',{}).get('kind') in ('node_file','node_test') and pathlib.Path(item.get('arguments',{}).get('path','')).name=='verify.mjs':
+     try: agent_test=agent_test or any(json.loads(c.get('text','{}')).get('passed') is True for c in item.get('result',{}).get('content',[]) if c.get('type')=='text')
+     except (ValueError,TypeError): pass
     if row.get('type')=='item.completed' and item.get('tool')=='search_project_context' and item.get('status')=='completed' and not item.get('error'):used=True
    except json.JSONDecodeError:pass
   report.append({'case':name,'seconds':round(time.monotonic()-start,1),'timeout':timed,'exit':proc.returncode,'baseline_fails':True,'tests_unchanged':immutable,'behavior_pass':verified.returncode==0 and immutable,'retrieval_used':used,'agent_ran_tests':agent_test,'pass':verified.returncode==0 and immutable and used and agent_test and not timed,'test_output':verified.stdout+verified.stderr})

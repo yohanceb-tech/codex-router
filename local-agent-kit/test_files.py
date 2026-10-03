@@ -16,7 +16,7 @@ class Files(unittest.TestCase):
   data='\n'.join(json.dumps(v) for v in [{'jsonrpc':'2.0','id':1,'method':'initialize','params':{'protocolVersion':'2024-11-05'}},{'jsonrpc':'2.0','id':2,'method':'tools/list'},{'jsonrpc':'2.0','id':3,'method':'tools/call','params':{'name':'read_project_file','arguments':{'root':'/not-existing','path':'x'}}}])+'\n'
   p=subprocess.run([sys.executable,str(pathlib.Path(__file__).with_name('server.py'))],input=data,text=True,capture_output=True,check=True)
   rows=[json.loads(v) for v in p.stdout.splitlines()]
-  self.assertEqual(len(rows[1]['result']['tools']),3);self.assertTrue(rows[2]['result']['isError'])
+  self.assertEqual(len(rows[1]['result']['tools']),4);self.assertTrue(rows[2]['result']['isError'])
 class Retrieval(unittest.TestCase):
  def test_relevance_freshness_and_exclusions(self):
   with tempfile.TemporaryDirectory() as d:
@@ -27,6 +27,19 @@ class Retrieval(unittest.TestCase):
    self.assertEqual([x['path'] for x in result['results']],['jobs.mjs'])
    (r/'jobs.mjs').write_text('export function retryJob() {}')
    self.assertEqual(m.call('search_project_context',{'root':d,'query':'cancelJob'})['results'],[])
+class Checks(unittest.TestCase):
+ def test_checks_and_failures(self):
+  with tempfile.TemporaryDirectory() as d:
+   r=pathlib.Path(d);(r/'verify.mjs').write_text("console.log('VERIFIED');")
+   result=m.call('run_project_check',{'root':d,'kind':'node_file','path':'verify.mjs'})
+   self.assertTrue(result['passed']);self.assertIn('VERIFIED',result['output'])
+   m.call('read_project_file',{'root':d,'path':'verify.mjs'})
+   self.assertTrue(m.call('run_project_check',{'kind':'node_file','path':'verify.mjs'})['passed'])
+   (r/'verify.mjs').write_text("throw new Error('failure');")
+   self.assertFalse(m.call('run_project_check',{'root':d,'kind':'node_file','path':'verify.mjs'})['passed'])
+   (r/'verify.mjs').write_text('setInterval(()=>{},1000)')
+   self.assertTrue(m.call('run_project_check',{'root':d,'kind':'node_file','path':'verify.mjs','timeout_seconds':1})['timeout'])
+   with self.assertRaises(ValueError):m.call('run_project_check',{'root':d,'kind':'package_script','script':'evil; echo x'})
 class Installer(unittest.TestCase):
  def test_restore_idempotence(self):
   from unittest.mock import patch

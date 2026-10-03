@@ -5,7 +5,7 @@ import sys,shutil,tomllib,datetime,subprocess
 kit=Path(__file__).resolve().parent
 home=Path.home()/'.codex'; home.mkdir(exist_ok=True)
 dest=home/'local-agent-kit'; dest.mkdir(exist_ok=True)
-for name in ['server.py','retrieval.py','instructions.md']: shutil.copy2(kit/name,dest/name)
+for name in ['server.py','retrieval.py','checks.py','instructions.md']: shutil.copy2(kit/name,dest/name)
 skill=home/'skills/local-agent-development'; skill.mkdir(parents=True,exist_ok=True); shutil.copy2(kit/'SKILL.md',skill/'SKILL.md')
 config=home/'config.toml'; text=config.read_text() if config.exists() else ''
 begin='# BEGIN local-agent-kit-managed'; end='# END local-agent-kit-managed'
@@ -17,6 +17,8 @@ block=f'''{begin}
 command = {q(sys.executable)}
 args = [{q(dest/'server.py')}]
 startup_timeout_sec = 20
+[mcp_servers.local-agent-files.tools.run_project_check]
+approval_mode = "approve"
 [mcp_servers.local-agent-files.tools.search_project_context]
 approval_mode = "approve"
 [mcp_servers.local-agent-files.tools.read_project_file]
