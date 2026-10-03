@@ -71,3 +71,12 @@ test("GPT-OSS local memory overlay pins machine and model identity", () => {
   assert.match(instructions, /Type stripping.*is not static type-checking/i);
   assert.match(instructions, /AGENTS\.md Remembered context/i);
 });
+
+test("GPT-OSS checks actual tools before denying website or chat capability", () => {
+ const text=applyInstructionOverlay("Base.","durable-local-memory-gpt-oss");
+ assert.match(text,/inspect the offered tools before answering/);
+ assert.match(text,/limitation only if the needed tool is absent or an attempted call/);
+ assert.match(text,/list_threads tool/);assert.match(text,/then read_thread/);
+ assert.match(text,/Never message another chat without explicit user authorization/);
+ assert.match(text,/before transmitting credentials/);
+});
