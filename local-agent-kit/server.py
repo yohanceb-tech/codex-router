@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Dependency-free MCP stdio file tools; writes require a matching content hash."""
 import sys,json,pathlib,hashlib,os,tempfile
+from retrieval import retrieve
 
 def digest(text): return hashlib.sha256(text.encode()).hexdigest()
 def target(root,path):
@@ -12,6 +13,7 @@ def target(root,path):
  return p
 
 def call(name,a):
+ if name=='search_project_context': return retrieve(a['root'],a['query'],a.get('limit',8))
  p=target(a['root'],a['path'])
  if name=='read_project_file':
   text=p.read_text(); lines=text.splitlines(keepends=True); start=max(1,a.get('start_line',1)); count=min(400,max(1,a.get('line_count',160)))
@@ -35,8 +37,9 @@ def call(name,a):
 base={'root':{'type':'string','description':'Absolute project directory'},'path':{'type':'string','description':'Path relative to project root'}}
 def schema(extra,required): return {'type':'object','properties':dict(base,**extra),'required':['root','path']+required,'additionalProperties':False}
 tools=[{'name':'read_project_file','description':'Read a bounded text file excerpt and full-file hash.','inputSchema':schema({'start_line':{'type':'integer'},'line_count':{'type':'integer'}},[])},{'name':'write_project_file','description':'Atomically write text only if the full-file hash matches. Use missing for a new file. Run relevant syntax/tests afterward.','inputSchema':schema({'expected_sha256':{'type':'string'},'content':{'type':'string'}},['expected_sha256','content'])}]
+tools.append({'name':'search_project_context','description':'Retrieve ranked code/docs excerpts with file paths and line numbers from the current local project. No network or persistent index.','inputSchema':{'type':'object','properties':{'root':base['root'],'query':{'type':'string'},'limit':{'type':'integer'}},'required':['root','query'],'additionalProperties':False}})
 for tool in tools:
- tool['annotations']={'readOnlyHint':tool['name']=='read_project_file','destructiveHint':tool['name']=='write_project_file','openWorldHint':False,'idempotentHint':tool['name']=='read_project_file'}
+ tool['annotations']={'readOnlyHint':tool['name']!='write_project_file','destructiveHint':tool['name']=='write_project_file','openWorldHint':False,'idempotentHint':tool['name']!='write_project_file'}
 def main():
  for line in sys.stdin:
   try:

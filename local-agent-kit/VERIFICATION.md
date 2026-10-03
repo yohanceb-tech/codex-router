@@ -8,3 +8,9 @@
 - Local Gemma vision bridge end-to-end with GPT-OSS was verified earlier in this task: correct code, failed job title, error; router recorded engine=local, described=1, failed=0.
 - Installer targets the user's Mac configuration; Windows restoration and a clean second-machine full router install were not tested. No global model/instruction default changes; use codex --profile local-dev for the focused CLI mode. Desktop MCP discovery needs a user-initiated restart.
 - Existing Gemma overlay/model assignment changes were inspected and retained in this backup checkpoint. The default router installation/release pipeline and other provider credentials/protocols were not changed; full provider/network/release testing was not run.
+
+## Project retrieval/evaluation extension
+
+- 5 Python tests passed: file/protocol/installer checks, retrieval relevance/freshness/secret-name and generated-directory exclusions, and all three evaluation oracles verified against known broken and correct implementations. Router focused suites: 41 checks passed; Python syntax compiled.
+- Real GPT-OSS runs used the new retrieval MCP tool. Independent immutable tests passed for filtering (25.4s), cancellation (15.9s), and stale polling merge (23.0s). Cancellation and merge also had actual successful agent-run verification. Initial filtering hallucinated an execution blocker; after an instruction clarification it emitted a command as prose instead of executing it. Both filter runs therefore fail the overall workflow criterion despite correct code. This remains an observed agent reliability limitation.
+- These are synthetic Weble-style job tasks; the user's actual Weble source root was not supplied during implementation, and live app retrieval/integration was not certified. Retrieval operates on any caller-specified local project root. No before/after accuracy improvement is claimed. No weights or training were changed.

@@ -9,7 +9,7 @@ Prerequisites: Codex, Python 3.11+, Node.js 22.19+, Ollama, and the normal codex
 ```sh
 git clone --branch fix/gpt-oss-codex-integration-2026-09-30 https://github.com/yohanceb-tech/codex-router.git ~/.local/share/codex-router
 cd ~/.local/share/codex-router
-git checkout gpt-oss-local-agent-kit-2026-10-03
+git checkout gpt-oss-project-context-2026-10-03
 ollama pull gpt-oss:20b
 ollama pull gemma4:latest
 # Complete normal router installation and publish GPT-OSS using its local-model controls.
@@ -29,3 +29,17 @@ The development skill guides the existing unified CUA runtime through actual use
 No model weights, account credentials, caller secrets, conversations, or private project data belong in this backup. Download weights and authenticate again on restore. Python and Node executables must be on PATH; Codex computer use requires its supported desktop runtime.
 
 To undo the kit, remove the marked local-agent-kit block from config.toml, local-dev.config.toml, ~/.codex/local-agent-kit, and ~/.codex/skills/local-agent-development; choose your previous vision engine separately. Existing timestamped config backups are private local files and are not uploaded.
+
+## Project context and repeatable evaluations
+
+search_project_context searches current source and documentation with ranked lexical matches. Pass the project's absolute root and concrete feature/symbol/error terms. Results include paths, line numbers, and bounded excerpts. No embedding service, model, network, or persistent index is needed. It respects rg ignore files and excludes common secret filenames, node_modules, and generated directories; it is not a comprehensive secret scanner. Explicit file reads still follow the existing tool contract. Read applicable AGENTS.md and manifests separately. It needs ripgrep on PATH.
+
+Run the disposable Weble-style suite:
+
+```sh
+python3 local-agent-kit/evaluate.py --output /absolute/path/to/a/new/evaluation-run
+# Or select one case:
+python3 local-agent-kit/evaluate.py --case filter --output /absolute/path/to/another/new/run
+```
+
+The suite measures title/status filtering, terminal-state cancellation, and stale polling preserving cancellations while including new jobs. Each case starts broken and is checked independently with immutable tests. It records successful retrieval tool use, independent behavior checks, whether the agent actually ran tests, latency, timeout, and Codex exit status. An overall pass requires the agent to run verification as well as produce correct code. The router exact-route header prevents silently substituting another model. The profile must already be installed. Use a fresh output directory each time. Compare repeated runs before claiming accuracy or speed improvement. These are synthetic coding tasks, not live Weble browser, backend, or production integration coverage. Keep results outside the source repository; logs are local evidence and should not be uploaded without review.
