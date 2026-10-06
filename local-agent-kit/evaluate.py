@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Repeatable synthetic Weble coding evaluations through real Codex; no live account."""
-import argparse,pathlib,json,subprocess,time,os,signal
+import argparse,pathlib,json,subprocess,time,os,signal,sys
 CASES={
  'filter':{'query':'filterJobs status title','source':'export function filterJobs(jobs, query, status) { return jobs; }\n','task':'Fix filterJobs: match title case-insensitively, filter exact case-sensitive status unless all, preserve input order and objects.','checks':'''const jobs=[{title:'Ocean',status:'complete'},{title:'Launch',status:'failed'}];
 assert.deepEqual(filterJobs(jobs,'LA','all'),[jobs[1]]);
@@ -16,7 +16,7 @@ const result=mergePoll(local,server);assert.deepEqual(result,[{id:1,status:'canc
 assert.deepEqual(mergePoll([],server),server);assert.deepEqual(mergePoll(local,[]),[]);''','symbol':'mergePoll'}
 }
 def main():
- ap=argparse.ArgumentParser();ap.add_argument('--output',required=True);ap.add_argument('--case',choices=list(CASES));ap.add_argument('--timeout',type=int,default=180);ap.add_argument('--prepare-only',action='store_true');a=ap.parse_args()
+ ap=argparse.ArgumentParser();ap.add_argument('--output',required=True);ap.add_argument('--case',choices=list(CASES));ap.add_argument('--timeout',type=int,default=180);ap.add_argument('--prepare-only',action='store_true');ap.add_argument('--private',action='store_true',help='Use network-restricted private Codex launcher');a=ap.parse_args()
  root=pathlib.Path(a.output).resolve();root.mkdir(parents=True,exist_ok=True)
  report=[]
  for name,c in CASES.items():
@@ -35,7 +35,8 @@ def main():
   prompt=c['task']+' Use search_project_context to locate relevant implementation and notes. Only edit jobs.mjs. Run node verify.mjs, fix failures, and report observed results.'
   start=time.monotonic();timed=False
   with (root/(name+'-events.jsonl')).open('w') as out,(root/(name+'-stderr.txt')).open('w') as err:
-   proc=subprocess.Popen(['codex','exec','--profile','local-dev','--ephemeral','--skip-git-repo-check','--json','-c','model_providers.codex-router.http_headers.x-codex-router-exact-route="1"','-C',str(dest),prompt],stdout=out,stderr=err,start_new_session=True)
+   command=([sys.executable,str(pathlib.Path(__file__).parent/'private/launch.py'),'exec'] if a.private else ['codex','exec','--profile','local-dev','-c','model_providers.codex-router.http_headers.x-codex-router-exact-route="1"'])
+   proc=subprocess.Popen(command+['--ephemeral','--skip-git-repo-check','--json','-C',str(dest),prompt],stdout=out,stderr=err,start_new_session=True)
    try:proc.wait(timeout=a.timeout)
    except subprocess.TimeoutExpired:timed=True;os.killpg(proc.pid,signal.SIGTERM);proc.wait(timeout=15)
   verified=subprocess.run(['node','verify.mjs'],cwd=dest,capture_output=True,text=True)

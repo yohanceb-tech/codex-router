@@ -53,3 +53,7 @@ For GPT-OSS only, the router appends a short summary of chat/browser/retrieval/e
 run_project_check supports Node file execution, Node tests, Node syntax checking, and existing npm test/build/typecheck/lint scripts. It uses argv without shell interpolation, returns observed status and bounded output, and kills its process group after a bounded timeout. Read/search a project first; omit root to reuse that directory within the MCP process, or supply another explicit absolute root. This context is transient and is not a sandbox. Project checks execute project code with the user's privileges and may write files or use the network, just as existing build/test scripts do; run only checks authorized for a trusted project. Only this tool is added to the existing kit's explicit automatic approvals.
 
 The focused profile remains optional CLI configuration. The tools and skill are available after restarting the desktop app; start a fresh GPT-OSS chat to discard earlier incorrect capability assumptions. The router's generated guide applies to desktop requests as well as the CLI when those tools are declared. No changes to model weights or hosted fallback were made.
+
+## Optional private mode
+
+For the separately network-restricted GPT-OSS CLI, project-bound tools, and public-web broker, see [private/README.md](private/README.md). Install with `python3 local-agent-kit/private/install.py`. This mode does not certify ordinary signed-in desktop chats as private.
