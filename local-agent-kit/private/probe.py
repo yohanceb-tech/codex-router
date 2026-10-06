@@ -22,6 +22,12 @@ def main():
     assert child.returncode!=0 and 'Operation not permitted' in child.stderr;results['child_process_network_blocked']=True
     for u in ['https://api.openai.com/v1/models','https://chatgpt.com/','https://127.0.0.1/','https://example.com:8443/']:
         status,v=request(web,'/fetch',{'url':u});assert status==400 and 'error' in v
+    for protected in [Path.home()/'.local/bin/codex-private',Path(os.environ['CODEX_HOME'])/'config.toml']:
+        try:
+            fd=os.open(protected,os.O_WRONLY|os.O_APPEND);os.close(fd)
+            raise AssertionError('Private control file unexpectedly writable')
+        except PermissionError:pass
+    results['private_control_files_read_only']=True
     results['web_destination_policy']=True
     status,v=request(inference,'/v1/responses',{'model':'gpt-6.1-sol','input':'synthetic privacy probe'});assert status==400;results['hosted_model_blocked']=True
     status,v=request(inference,'/v1/embeddings',{});assert status==403;results['unhandled_endpoint_blocked']=True

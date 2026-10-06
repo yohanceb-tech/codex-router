@@ -14,6 +14,7 @@ Machine: Apple-silicon Mac Studio M2 Ultra, 64 GB. Installed Codex CLI from Chat
 | Compaction stays local and preserves a requirement | Verified | V1 and V2 local checkpoints replayed; subsequent GPT-OSS response retained required CEDAR 912 label |
 | Project tools simplify arguments without removing revision checks | Verified | Stale write rejected after intervening edit; fresh read/write succeeds; traversal/absolute paths/root overrides rejected |
 | Coding agent executes verification | Verified | Two complete real Codex private suites: filtering, cancellation and stale-poll merging all passed independent immutable tests and agent-run verification (6/6) |
+| Launcher/config mutation | Verified | The agent sandbox refused write access to its launcher and private config |
 | Cleanup | Verified | No gateway/broker process remained after normal test completion |
 | Full independent browser/desktop task completion | Not applicable | Private CLI does not expose signed-in desktop/browser tools |
 | All app/machine traffic never reaches OpenAI | Not claimed | Other running applications and public sites' downstream sharing are outside this process boundary |
@@ -21,7 +22,7 @@ Machine: Apple-silicon Mac Studio M2 Ultra, 64 GB. Installed Codex CLI from Chat
 
 The first coding run failed all three cases because the model mistyped roots and hashes and produced malformed calls. The project-bound facade removed those argument burdens while retaining server-side revision checks. Two subsequent suites passed: 13.8/9.7/14.0 seconds, then 11.7/9.0/43.8 seconds. The slow final case still required recovery. These are tiny synthetic cases, not production Weble integration or a general capability benchmark.
 
-Earlier setup probes also exposed a compressed-page decoding problem, opaque local reasoning replay, and missing message type normalization during a compaction probe. Those were corrected; the final live privacy/model probe passed thirteen checks, including both compaction formats. Intermediate evidence is retained locally rather than concealed. No private project data was transmitted by these probes.
+Earlier setup probes also exposed a compressed-page decoding problem, opaque local reasoning replay, and missing message type normalization during a compaction probe. Those were corrected; the final live privacy/model probe passed fourteen checks, including both compaction formats. Intermediate evidence is retained locally rather than concealed. No private project data was transmitted by these probes.
 
 Automated verification after the final runtime changes: seven private boundary/facade tests, six existing local-kit tests, 61 namespace/compaction/runtime regressions, Python compilation, Node syntax checking, and npm run check passed. The existing multi-provider router source was not modified. Its failover state was explicitly disabled; analytics and feedback were disabled in the user config. No Windows or full provider/release matrix was run for this macOS-only add-on.
 

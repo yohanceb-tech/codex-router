@@ -100,7 +100,7 @@ def main():
             (ROOT/'config.toml').write_text(config(inference));(ROOT/'config.toml').chmod(0o600)
             # No cloud auth file is copied. A previous accidental login is refused.
             if (ROOT/'auth.json').exists():raise RuntimeError('Unexpected auth.json in private home; review it before continuing')
-            protected=[HERE.parent.parent,ROOT/'config.toml',ROOT/'AGENTS.md',Path.home()/'.codex']
+            protected=[HERE.parent.parent,ROOT/'config.toml',ROOT/'AGENTS.md',ROOT/'GPT-OSS Private.command',Path.home()/'.local/bin/codex-private',Path.home()/'.codex']
             sandbox=['/usr/bin/sandbox-exec','-p',policy([inference,web],protected)]
             args=sys.argv[1:]
             project=Path.cwd()

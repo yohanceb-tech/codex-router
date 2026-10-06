@@ -1,6 +1,6 @@
 # Private GPT-OSS + Codex on this Mac
 
-Use `codex-private -C /absolute/project/path` in Terminal. The launcher uses the installed Codex CLI with GPT-OSS, independent of the signed-in desktop chat. For a simple launch, double-click `~/.local/share/codex-private/GPT-OSS Private.command`; it starts in Documents/Codex. Select the actual project with `-C` for project-bound tools.
+Use `~/.local/bin/codex-private -C /absolute/project/path` in Terminal. The launcher uses the installed Codex CLI with GPT-OSS, independent of the signed-in desktop chat. For a simple launch, double-click `~/.local/share/codex-private/GPT-OSS Private.command`; it starts in Documents/Codex. Select the actual project with `-C` for project-bound tools.
 
 This is an optional macOS-only private mode. It refuses to run without the tested macOS network sandbox. Ordinary Codex desktop chats are **not** covered by this mode. They can still use OpenAI services. This setup conversation itself used a hosted model.
 
@@ -21,7 +21,7 @@ The private file tools bind the project once at launch. Read, write, retrieve an
 
 GPT-OSS uses medium reasoning, a 131K advertised window and a 100K compaction threshold. The adapter caches up to twelve local screenshot descriptions in memory for the session to avoid repeatedly asking Gemma about the same image. It supplies only focused local file/check and public research MCP tools. Agent instructions require actual verification and concrete failures. The CLI permits one transport retry, always to the same local adapter; there is no automatic switch to another model.
 
-For difficult debugging, explicitly use `codex-private -C /path -c model_reasoning_effort='"high"'`. Medium is the installed profile default; this does not change another chat's thinking setting. A stronger local specialist can be evaluated separately later, but Qwen Coder Next's memory pressure on this 64 GB machine makes it a poor automatic fallback. Qwen Coder 30B remains experimental. Tests and narrow tasks currently provide more dependable safeguards than model voting.
+For difficult debugging, explicitly use `~/.local/bin/codex-private -C /path -c model_reasoning_effort='"high"'`. Medium is the installed profile default; this does not change another chat's thinking setting. A stronger local specialist can be evaluated separately later, but Qwen Coder Next's memory pressure on this 64 GB machine makes it a poor automatic fallback. Qwen Coder 30B remains experimental. Tests and narrow tasks currently provide more dependable safeguards than model voting.
 
 The private CLI retains coding, code retrieval, local tests/builds, public research and local screenshot interpretation. It does not expose Codex's signed-in desktop/browser/chat/cloud tools. Shell network restrictions also prevent package downloads, remote Git operations and ordinary development-server listening. Install dependencies separately for a trusted project before entering private mode. Do not claim end-to-end website editing or GPT-5.6 parity from these tests.
 
@@ -32,7 +32,7 @@ Prerequisites: the existing Codex app/CLI at the path in launch.py, Python 3.11+
 From the verified repository checkpoint:
 
 ```sh
-git checkout gpt-oss-private-agent-2026-10-06
+git checkout gpt-oss-private-agent-2026-10-06-r1
 python3 local-agent-kit/private/install.py
 ~/.local/bin/codex-private --privacy-check
 ~/.local/bin/codex-private -C /absolute/project/path

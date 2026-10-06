@@ -9,7 +9,7 @@ Prerequisites: Codex, Python 3.11+, Node.js 22.19+, Ollama, and the normal codex
 ```sh
 git clone --branch fix/gpt-oss-codex-integration-2026-09-30 https://github.com/yohanceb-tech/codex-router.git ~/.local/share/codex-router
 cd ~/.local/share/codex-router
-git checkout gpt-oss-runtime-tools-2026-10-03
+git checkout gpt-oss-private-agent-2026-10-06-r1
 ollama pull gpt-oss:20b
 ollama pull gemma4:latest
 # Complete normal router installation and publish GPT-OSS using its local-model controls.
